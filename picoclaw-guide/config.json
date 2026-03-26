@@ -1,0 +1,24 @@
+{
+  "agents": {
+    "defaults": {
+      "workspace": "~/.picoclaw/workspace",
+      "model_name": "gpt-oss-120b",
+      "max_tokens": 32768,
+      "max_tool_iterations": 50
+    }
+  },
+  "model_list": [
+    {
+      "model_name": "gpt-oss-120b",
+      "model": "openai/gpt-oss-120b",
+      "api_key": "YOUR_OPENROUTER_API_KEY",
+      "base_url": "https://openrouter.ai/api/v1"
+    }
+  ],
+  "channels": {
+    "telegram": {
+      "bot_token": "8558193365:AAHuCMB6miOU3lNOVkxuyBizpauuHhVzuTw",
+      "enabled": true
+    }
+  }
+}
