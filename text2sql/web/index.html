@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>text2sql</title>
+  <style>
+    :root { --bg:#0f1117; --panel:#181b24; --border:#2a2f3a; --fg:#e6e8ee; --muted:#8b91a0; --accent:#5b9cff; --ok:#3fb950; --err:#f85149; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--fg); }
+    header { padding:18px 24px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+    header h1 { font-size:18px; margin:0; }
+    header .badge { font-size:12px; color:var(--muted); }
+    main { max-width:900px; margin:0 auto; padding:24px; display:flex; flex-direction:column; gap:20px; }
+    .panel { background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px; }
+    .panel h2 { font-size:13px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); margin:0 0 12px; }
+    label { display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+    input, textarea, select { width:100%; background:#0f1117; border:1px solid var(--border); border-radius:7px; color:var(--fg); padding:9px 11px; font:inherit; }
+    textarea { resize:vertical; min-height:54px; }
+    .row { display:flex; gap:10px; align-items:flex-end; }
+    .row > * { flex:1; }
+    button { background:var(--accent); border:0; color:#fff; padding:9px 16px; border-radius:7px; font:inherit; font-weight:600; cursor:pointer; white-space:nowrap; flex:0 0 auto; }
+    button.secondary { background:#262b36; }
+    button:disabled { opacity:.5; cursor:default; }
+    pre { background:#0b0d12; border:1px solid var(--border); border-radius:7px; padding:12px; overflow-x:auto; margin:0; white-space:pre-wrap; word-break:break-word; }
+    .sql { color:#a5d6ff; }
+    .muted { color:var(--muted); }
+    .err { color:var(--err); }
+    .ok { color:var(--ok); }
+    .hidden { display:none; }
+    table { border-collapse:collapse; width:100%; font-size:13px; }
+    .tablewrap { overflow-x:auto; }
+    th, td { border:1px solid var(--border); padding:6px 10px; text-align:left; white-space:nowrap; }
+    th { background:#0b0d12; color:var(--muted); position:sticky; top:0; }
+    .spin { color:var(--muted); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>text2sql</h1>
+    <span class="badge" id="modelBadge">…</span>
+  </header>
+  <main>
+    <div class="panel">
+      <h2>1 · Connect & ingest schema</h2>
+      <div class="row">
+        <div>
+          <label>Postgres connection string</label>
+          <input id="conn" placeholder="postgresql://user:pass@localhost:5432/dbname" />
+        </div>
+        <button id="ingestBtn">Ingest</button>
+      </div>
+      <p id="ingestStatus" class="muted" style="margin:10px 0 0"></p>
+    </div>
+
+    <div class="panel">
+      <h2>2 · Ask a question</h2>
+      <div class="row">
+        <div>
+          <label>Active database</label>
+          <select id="dbSelect"></select>
+        </div>
+      </div>
+      <div style="margin-top:10px">
+        <label>Natural language question</label>
+        <textarea id="question" placeholder="Show me the person who has the most orders this month"></textarea>
+      </div>
+      <div style="margin-top:10px; display:flex; gap:10px;">
+        <button id="askBtn">Generate SQL</button>
+        <button id="runBtn" class="secondary">Generate &amp; Run</button>
+      </div>
+      <p id="askStatus" class="muted" style="margin:10px 0 0"></p>
+    </div>
+
+    <div class="panel hidden" id="sqlPanel">
+      <h2>Generated SQL</h2>
+      <p id="explanation" class="muted" style="margin:0 0 10px"></p>
+      <pre class="sql" id="sqlBox" contenteditable="true"></pre>
+      <div style="margin-top:10px"><button id="execBtn">Execute this SQL</button></div>
+    </div>
+
+    <div class="panel hidden" id="resultPanel">
+      <h2>Result</h2>
+      <p id="resultMeta" class="muted" style="margin:0 0 10px"></p>
+      <div class="tablewrap"><table id="resultTable"></table></div>
+    </div>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const api = async (path, body) => {
+      const opts = body ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) } : {};
+      const r = await fetch(path, opts);
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.detail || r.statusText);
+      return data;
+    };
+
+    async function refreshDatabases() {
+      const { databases } = await api("/api/databases");
+      const sel = $("dbSelect");
+      sel.innerHTML = "";
+      for (const d of databases) {
+        const o = document.createElement("option");
+        o.value = d.db_id; o.textContent = `${d.name} (${d.table_count} tables)`;
+        sel.appendChild(o);
+      }
+      if (databases.length) sel.value = databases[databases.length - 1].db_id;
+    }
+
+    (async () => {
+      try {
+        const h = await api("/api/health");
+        $("modelBadge").textContent = `gen: ${h.gen_model} · embed: ${h.embed_model}` + (h.read_only ? " · READ-ONLY" : "");
+      } catch { $("modelBadge").textContent = "API unreachable"; }
+      await refreshDatabases();
+    })();
+
+    $("ingestBtn").onclick = async () => {
+      const conn = $("conn").value.trim();
+      if (!conn) return;
+      $("ingestBtn").disabled = true;
+      $("ingestStatus").className = "spin"; $("ingestStatus").textContent = "Introspecting & embedding schema…";
+      try {
+        const res = await api("/api/ingest", { connection_string: conn });
+        $("ingestStatus").className = "ok"; $("ingestStatus").textContent = `Ingested ${res.table_count} tables.`;
+        await refreshDatabases();
+        $("dbSelect").value = res.db_id;
+      } catch (e) {
+        $("ingestStatus").className = "err"; $("ingestStatus").textContent = e.message;
+      } finally { $("ingestBtn").disabled = false; }
+    };
+
+    let lastDbId = null;
+    async function generate() {
+      const q = $("question").value.trim();
+      if (!q) return null;
+      lastDbId = $("dbSelect").value || null;
+      $("askStatus").className = "spin"; $("askStatus").textContent = "Thinking…";
+      const res = await api("/api/ask", { question: q, db_id: lastDbId });
+      $("askStatus").textContent = "";
+      $("sqlPanel").classList.remove("hidden");
+      $("explanation").textContent = res.explanation + (res.tables_used?.length ? `  ·  tables: ${res.tables_used.join(", ")}` : "");
+      $("sqlBox").textContent = res.sql || "(model could not produce SQL — see explanation)";
+      return res.sql;
+    }
+
+    async function execute() {
+      const sql = $("sqlBox").textContent.trim();
+      if (!sql) return;
+      $("execBtn").disabled = true;
+      try {
+        const res = await api("/api/execute", { sql, db_id: lastDbId || $("dbSelect").value || null });
+        renderResult(res);
+      } catch (e) {
+        $("resultPanel").classList.remove("hidden");
+        $("resultMeta").className = "err"; $("resultMeta").textContent = e.message;
+        $("resultTable").innerHTML = "";
+      } finally { $("execBtn").disabled = false; }
+    }
+
+    function renderResult(res) {
+      $("resultPanel").classList.remove("hidden");
+      $("resultMeta").className = "muted";
+      if (!res.columns.length) {
+        $("resultMeta").textContent = `Statement OK — ${res.rowcount} row(s) affected.`;
+        $("resultTable").innerHTML = ""; return;
+      }
+      $("resultMeta").textContent = `${res.rowcount} row(s)` + (res.truncated ? " (truncated)" : "");
+      const head = "<tr>" + res.columns.map(c => `<th>${c}</th>`).join("") + "</tr>";
+      const body = res.rows.map(r => "<tr>" + r.map(v => `<td>${v === null ? '<span class="muted">NULL</span>' : String(v)}</td>`).join("") + "</tr>").join("");
+      $("resultTable").innerHTML = head + body;
+    }
+
+    $("askBtn").onclick = async () => { try { await generate(); } catch (e) { $("askStatus").className = "err"; $("askStatus").textContent = e.message; } };
+    $("runBtn").onclick = async () => { try { const sql = await generate(); if (sql) await execute(); } catch (e) { $("askStatus").className = "err"; $("askStatus").textContent = e.message; } };
+    $("execBtn").onclick = execute;
+  </script>
+</body>
+</html>
