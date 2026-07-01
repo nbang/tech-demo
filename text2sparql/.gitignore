@@ -1,0 +1,7 @@
+.env
+.text2sparql/
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/

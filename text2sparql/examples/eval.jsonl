@@ -1,0 +1,19 @@
+# Gold question -> expected-answer pairs for `text2sparql eval`.
+# One JSON object per line (blank lines and #-comments are ignored).
+#   graph    : RDF source to ingest (path or endpoint URL)
+#   question : natural-language question
+#   expect   : the answer as a flat list of values; matching is order- and
+#              column-insensitive (see text2sparql/eval.py for the rules)
+#   match    : "auto" (default) or "subset" (expect ⊆ result, for open-ended queries)
+
+# --- shop_demo.ttl : flat relational-style graph ---------------------------
+{"graph": "examples/shop_demo.ttl", "question": "Which customer placed the most orders?", "expect": ["Alice Nguyen", "4"]}
+{"graph": "examples/shop_demo.ttl", "question": "List the names of all customers in Vietnam (country VN)", "expect": ["Alice Nguyen", "Bao Tran", "Erik Vo"]}
+{"graph": "examples/shop_demo.ttl", "question": "What is the name of the most expensive product?", "expect": ["Standing Desk"]}
+
+# --- acme_kg.ttl : graph-native hierarchy + transitive relations -----------
+{"graph": "examples/acme_kg.ttl", "question": "List the names of everyone who is an employee, including managers", "expect": ["Sofia Reyes", "Raj Patel", "Mei Lin", "Omar Haddad", "Tom Becker", "Ana Costa", "Lina Park"]}
+{"graph": "examples/acme_kg.ttl", "question": "List the names of everyone that Tom Becker reports to, directly or indirectly", "expect": ["Mei Lin", "Raj Patel", "Sofia Reyes"]}
+{"graph": "examples/acme_kg.ttl", "question": "Which country is the ACME Corp HQ located in?", "expect": ["United States"]}
+{"graph": "examples/acme_kg.ttl", "question": "List the names of every sub-organization under ACME Corp at any depth", "expect": ["Engineering", "Sales", "Platform Team", "ML Team"]}
+{"graph": "examples/acme_kg.ttl", "question": "List the names of people who have any kind of machine learning skill", "expect": ["Sofia Reyes", "Raj Patel", "Omar Haddad", "Lina Park"]}

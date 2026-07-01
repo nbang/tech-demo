@@ -1,0 +1,61 @@
+# ============================================================================
+#  shop_demo — a small e-commerce knowledge graph for testing text2sparql.
+#  Ingest with:  text2sparql ingest examples/shop_demo.ttl
+#
+#  Modelled with the STANDARD schema.org vocabulary (https://schema.org) — Person,
+#  Product, Order, OrderItem, Invoice — and NO explicit ontology block. The classes
+#  and properties are implied purely by usage; the tool infers the schema from the
+#  data, and the model leans on its knowledge of schema.org + the example triples.
+# ============================================================================
+
+@prefix schema: <https://schema.org/> .
+@prefix xsd:    <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex:     <http://example.org/shop#> .
+
+# Customers (schema:Person).
+ex:cust1 a schema:Person ; schema:name "Alice Nguyen"  ; schema:email "alice@example.com"   ; schema:addressCountry "VN" .
+ex:cust2 a schema:Person ; schema:name "Bao Tran"      ; schema:email "bao@example.com"     ; schema:addressCountry "VN" .
+ex:cust3 a schema:Person ; schema:name "Charlie Pham"  ; schema:email "charlie@example.com" ; schema:addressCountry "US" .
+ex:cust4 a schema:Person ; schema:name "Diana Le"      ; schema:email "diana@example.com"   ; schema:addressCountry "JP" .
+ex:cust5 a schema:Person ; schema:name "Erik Vo"       ; schema:email "erik@example.com"    ; schema:addressCountry "VN" .
+
+# Products (schema:Product).
+ex:prod1 a schema:Product ; schema:name "Mechanical Keyboard" ; schema:category "Electronics" ; schema:price 89.00  ; schema:inventoryLevel 120 .
+ex:prod2 a schema:Product ; schema:name "USB-C Cable"         ; schema:category "Electronics" ; schema:price 9.50   ; schema:inventoryLevel 500 .
+ex:prod3 a schema:Product ; schema:name "Coffee Mug"          ; schema:category "Home"        ; schema:price 12.00  ; schema:inventoryLevel 300 .
+ex:prod4 a schema:Product ; schema:name "Notebook"            ; schema:category "Stationery"  ; schema:price 4.50   ; schema:inventoryLevel 800 .
+ex:prod5 a schema:Product ; schema:name "Standing Desk"       ; schema:category "Furniture"   ; schema:price 299.00 ; schema:inventoryLevel 25  .
+ex:prod6 a schema:Product ; schema:name "Desk Lamp"           ; schema:category "Home"        ; schema:price 34.90  ; schema:inventoryLevel 90  .
+
+# Orders (schema:Order) — link to the buyer via schema:customer and to line items via schema:orderedItem.
+# Alice (cust1) places the most orders: 4. Bao: 2. Others: 1 each.
+ex:order1  a schema:Order ; schema:customer ex:cust1 ; schema:orderStatus "paid"      ; schema:orderDate "2026-06-02T10:00:00"^^xsd:dateTime ; schema:orderedItem ex:item1, ex:item2 .
+ex:order2  a schema:Order ; schema:customer ex:cust1 ; schema:orderStatus "paid"      ; schema:orderDate "2026-06-05T11:30:00"^^xsd:dateTime ; schema:orderedItem ex:item3 .
+ex:order3  a schema:Order ; schema:customer ex:cust1 ; schema:orderStatus "paid"      ; schema:orderDate "2026-06-09T09:15:00"^^xsd:dateTime ; schema:orderedItem ex:item4, ex:item5 .
+ex:order4  a schema:Order ; schema:customer ex:cust1 ; schema:orderStatus "pending"   ; schema:orderDate "2026-06-12T14:45:00"^^xsd:dateTime ; schema:orderedItem ex:item6 .
+ex:order5  a schema:Order ; schema:customer ex:cust2 ; schema:orderStatus "paid"      ; schema:orderDate "2026-06-03T08:20:00"^^xsd:dateTime ; schema:orderedItem ex:item7 .
+ex:order6  a schema:Order ; schema:customer ex:cust2 ; schema:orderStatus "paid"      ; schema:orderDate "2026-06-07T16:05:00"^^xsd:dateTime ; schema:orderedItem ex:item8 .
+ex:order7  a schema:Order ; schema:customer ex:cust3 ; schema:orderStatus "paid"      ; schema:orderDate "2026-06-06T13:00:00"^^xsd:dateTime ; schema:orderedItem ex:item9 .
+ex:order8  a schema:Order ; schema:customer ex:cust4 ; schema:orderStatus "cancelled" ; schema:orderDate "2026-06-04T12:10:00"^^xsd:dateTime ; schema:orderedItem ex:item10 .
+ex:order9  a schema:Order ; schema:customer ex:cust5 ; schema:orderStatus "paid"      ; schema:orderDate "2026-04-15T10:00:00"^^xsd:dateTime .
+ex:order10 a schema:Order ; schema:customer ex:cust3 ; schema:orderStatus "paid"      ; schema:orderDate "2026-03-30T10:00:00"^^xsd:dateTime .
+
+# Order line items (schema:OrderItem) — each points to its Product via schema:orderedItem.
+ex:item1  a schema:OrderItem ; schema:orderedItem ex:prod1 ; schema:orderQuantity 1  ; schema:price 89.00 .
+ex:item2  a schema:OrderItem ; schema:orderedItem ex:prod2 ; schema:orderQuantity 2  ; schema:price 9.50  .
+ex:item3  a schema:OrderItem ; schema:orderedItem ex:prod3 ; schema:orderQuantity 4  ; schema:price 12.00 .
+ex:item4  a schema:OrderItem ; schema:orderedItem ex:prod5 ; schema:orderQuantity 1  ; schema:price 299.00 .
+ex:item5  a schema:OrderItem ; schema:orderedItem ex:prod6 ; schema:orderQuantity 1  ; schema:price 34.90 .
+ex:item6  a schema:OrderItem ; schema:orderedItem ex:prod4 ; schema:orderQuantity 10 ; schema:price 4.50  .
+ex:item7  a schema:OrderItem ; schema:orderedItem ex:prod1 ; schema:orderQuantity 1  ; schema:price 89.00 .
+ex:item8  a schema:OrderItem ; schema:orderedItem ex:prod2 ; schema:orderQuantity 3  ; schema:price 9.50  .
+ex:item9  a schema:OrderItem ; schema:orderedItem ex:prod6 ; schema:orderQuantity 2  ; schema:price 34.90 .
+ex:item10 a schema:OrderItem ; schema:orderedItem ex:prod3 ; schema:orderQuantity 1  ; schema:price 12.00 .
+
+# Payments (schema:Invoice) — settle an order via schema:referencesOrder.
+ex:pay1 a schema:Invoice ; schema:referencesOrder ex:order1 ; schema:totalPaymentDue 108.00 ; schema:paymentMethod "card" .
+ex:pay2 a schema:Invoice ; schema:referencesOrder ex:order2 ; schema:totalPaymentDue 48.00  ; schema:paymentMethod "cash" .
+ex:pay3 a schema:Invoice ; schema:referencesOrder ex:order3 ; schema:totalPaymentDue 333.90 ; schema:paymentMethod "transfer" .
+ex:pay4 a schema:Invoice ; schema:referencesOrder ex:order5 ; schema:totalPaymentDue 89.00  ; schema:paymentMethod "card" .
+ex:pay5 a schema:Invoice ; schema:referencesOrder ex:order6 ; schema:totalPaymentDue 28.50  ; schema:paymentMethod "card" .
+ex:pay6 a schema:Invoice ; schema:referencesOrder ex:order7 ; schema:totalPaymentDue 69.80  ; schema:paymentMethod "transfer" .
