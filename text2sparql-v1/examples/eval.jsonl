@@ -1,0 +1,20 @@
+# Gold question -> gold-SPARQL pairs for `text2sparql eval`.
+# One JSON object per line (blank lines and #-comments are ignored).
+#   graph    : RDF source to ingest (path or endpoint URL)
+#   question : natural-language question
+#   sparql   : the GOLD SPARQL query. eval runs this and the model's query, and
+#              compares their result sets (order- and column-insensitive; see
+#              text2sparql/eval.py). We store the query, not hardcoded answers.
+#   match    : "auto" (default) or "subset" (gold ⊆ model result, for open-ended queries)
+
+# --- shop_demo.ttl : flat relational-style graph ---------------------------
+{"graph": "examples/shop_demo.ttl", "question": "Which customer placed the most orders?", "sparql": "PREFIX schema: <https://schema.org/>\nSELECT ?name (COUNT(?o) AS ?n) WHERE {\n  ?o a schema:Order ; schema:customer ?c .\n  ?c schema:name ?name .\n} GROUP BY ?name ORDER BY DESC(?n) LIMIT 1"}
+{"graph": "examples/shop_demo.ttl", "question": "List the names of all customers in Vietnam (country VN)", "sparql": "PREFIX schema: <https://schema.org/>\nSELECT ?name WHERE {\n  ?c a schema:Person ; schema:addressCountry \"VN\" ; schema:name ?name .\n}"}
+{"graph": "examples/shop_demo.ttl", "question": "What is the name of the most expensive product?", "sparql": "PREFIX schema: <https://schema.org/>\nSELECT ?name WHERE {\n  ?p a schema:Product ; schema:price ?price ; schema:name ?name .\n} ORDER BY DESC(?price) LIMIT 1"}
+
+# --- acme_kg.ttl : graph-native hierarchy + transitive relations -----------
+{"graph": "examples/acme_kg.ttl", "question": "List the names of everyone who is an employee, including managers", "sparql": "PREFIX org: <http://www.w3.org/ns/org#>\nPREFIX schema: <https://schema.org/>\nSELECT ?name WHERE { ?e a org:Employee ; schema:name ?name . }"}
+{"graph": "examples/acme_kg.ttl", "question": "List the names of everyone that Tom Becker reports to, directly or indirectly", "sparql": "PREFIX org: <http://www.w3.org/ns/org#>\nPREFIX schema: <https://schema.org/>\nSELECT ?name WHERE {\n  ?tom schema:name \"Tom Becker\" ; org:reportsTo+ ?boss .\n  ?boss schema:name ?name .\n}"}
+{"graph": "examples/acme_kg.ttl", "question": "Which country is the ACME Corp HQ located in?", "sparql": "PREFIX org: <http://www.w3.org/ns/org#>\nPREFIX schema: <https://schema.org/>\nPREFIX gn: <http://www.geonames.org/ontology#>\nSELECT ?name WHERE {\n  ?acme schema:name \"ACME Corp\" ; org:basedIn ?bldg .\n  ?bldg gn:locatedIn+ ?country .\n  ?country a gn:Country ; schema:name ?name .\n}"}
+{"graph": "examples/acme_kg.ttl", "question": "List the names of every sub-organization under ACME Corp at any depth", "sparql": "PREFIX org: <http://www.w3.org/ns/org#>\nPREFIX schema: <https://schema.org/>\nSELECT ?name WHERE {\n  ?acme schema:name \"ACME Corp\" ; org:hasSubOrganization+ ?sub .\n  ?sub schema:name ?name .\n}"}
+{"graph": "examples/acme_kg.ttl", "question": "List the names of people who have any kind of machine learning skill", "sparql": "PREFIX org: <http://www.w3.org/ns/org#>\nPREFIX schema: <https://schema.org/>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\nSELECT DISTINCT ?name WHERE {\n  ?ml schema:name \"Machine Learning\" .\n  ?skill skos:broader* ?ml .\n  ?person org:hasSkill ?skill ; schema:name ?name .\n}"}

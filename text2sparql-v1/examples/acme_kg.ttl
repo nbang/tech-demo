@@ -1,0 +1,59 @@
+# ============================================================================
+#  acme_kg — a graph-native knowledge graph for testing text2sparql.
+#  Ingest with:  text2sparql ingest examples/acme_kg.ttl
+# ============================================================================
+
+@prefix org:    <http://www.w3.org/ns/org#> .
+@prefix schema: <https://schema.org/> .
+@prefix gn:     <http://www.geonames.org/ontology#> .
+@prefix skos:   <http://www.w3.org/2004/02/skos/core#> .
+@prefix ex:     <http://example.org/data#> .
+
+# ---------------------------------------------------------------------------
+#  Instance data
+# ---------------------------------------------------------------------------
+
+# People
+ex:sofia a org:Manager, org:Employee, org:Person, org:Agent ; schema:name "Sofia Reyes" ; org:title "CEO" ; org:salary 500000 ;
+    org:leads ex:acme ; org:basedIn ex:hq ; org:hasSkill ex:ml .
+ex:raj a org:Manager, org:Employee, org:Person, org:Agent ; schema:name "Raj Patel" ; org:title "CTO" ; org:salary 400000 ;
+    org:reportsTo ex:sofia ; org:leads ex:engineering ; org:memberOf ex:engineering ; org:hasSkill ex:python, ex:ml .
+ex:mei a org:Manager, org:Employee, org:Person, org:Agent ; schema:name "Mei Lin" ; org:title "Platform Lead" ; org:salary 250000 ;
+    org:reportsTo ex:raj ; org:leads ex:platform ; org:memberOf ex:platform ; org:hasSkill ex:rust .
+ex:omar a org:Manager, org:Employee, org:Person, org:Agent ; schema:name "Omar Haddad" ; org:title "ML Lead" ; org:salary 255000 ;
+    org:reportsTo ex:raj ; org:leads ex:mlTeam ; org:memberOf ex:mlTeam ; org:hasSkill ex:ml, ex:nlp .
+ex:tom a org:Employee, org:Person, org:Agent ; schema:name "Tom Becker" ; org:title "Engineer" ; org:salary 160000 ;
+    org:reportsTo ex:mei ; org:memberOf ex:platform ; org:worksOn ex:searchProj ; org:hasSkill ex:python, ex:rust ; org:knows ex:ana .
+ex:ana a org:Employee, org:Person, org:Agent ; schema:name "Ana Costa" ; org:title "Engineer" ; org:salary 165000 ;
+    org:reportsTo ex:mei ; org:memberOf ex:platform ; org:worksOn ex:searchProj ; org:hasSkill ex:python ; org:knows ex:tom, ex:lina .
+ex:lina a org:Employee, org:Person, org:Agent ; schema:name "Lina Park" ; org:title "ML Engineer" ; org:salary 175000 ;
+    org:reportsTo ex:omar ; org:memberOf ex:mlTeam ; org:worksOn ex:nlpProj ; org:hasSkill ex:nlp, ex:python ; org:knows ex:ana .
+
+# Organizations
+ex:acme        a org:Company,    org:Organization, org:Agent ; schema:name "ACME Corp" ;     org:basedIn ex:hq ;
+    org:hasSubOrganization ex:engineering, ex:sales .
+ex:engineering a org:Department, org:Organization, org:Agent ; schema:name "Engineering" ;   org:subOrganizationOf ex:acme ; org:basedIn ex:hq ;
+    org:hasSubOrganization ex:platform, ex:mlTeam .
+ex:sales       a org:Department, org:Organization, org:Agent ; schema:name "Sales" ;         org:subOrganizationOf ex:acme ; org:basedIn ex:londonOffice .
+ex:platform    a org:Team,       org:Organization, org:Agent ; schema:name "Platform Team" ; org:subOrganizationOf ex:engineering .
+ex:mlTeam      a org:Team,       org:Organization, org:Agent ; schema:name "ML Team" ;       org:subOrganizationOf ex:engineering .
+
+# Projects.
+ex:searchProj a org:Project ; schema:name "Search Revamp" ;   org:budget 1200000 .
+ex:nlpProj    a org:Project ; schema:name "Support Chatbot" ; org:budget 800000 .
+
+# Places
+ex:usa          a gn:Country,  gn:Place ; schema:name "United States" ;      gn:population 331000000 .
+ex:uk           a gn:Country,  gn:Place ; schema:name "United Kingdom" ;     gn:population 67000000 .
+ex:sf           a gn:City,     gn:Place ; schema:name "San Francisco" ;      gn:locatedIn ex:usa ; gn:population 870000 .
+ex:london       a gn:City,     gn:Place ; schema:name "London" ;            gn:locatedIn ex:uk ;  gn:population 8900000 .
+ex:hq           a gn:Building, gn:Place ; schema:name "ACME HQ" ;           gn:locatedIn ex:sf .
+ex:londonOffice a gn:Building, gn:Place ; schema:name "ACME London Office" ; gn:locatedIn ex:london .
+
+# Skills
+ex:programming a org:Skill ; schema:name "Programming" .
+ex:python      a org:Skill ; schema:name "Python" ;            skos:broader ex:programming .
+ex:rust        a org:Skill ; schema:name "Rust" ;              skos:broader ex:programming .
+ex:ml          a org:Skill ; schema:name "Machine Learning" .
+ex:nlp         a org:Skill ; schema:name "NLP" ;               skos:broader ex:ml .
+ex:cv          a org:Skill ; schema:name "Computer Vision" ;   skos:broader ex:ml .
