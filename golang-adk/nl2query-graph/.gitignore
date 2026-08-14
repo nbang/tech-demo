@@ -1,0 +1,10 @@
+# Local secrets & config
+.env
+
+# Generated SQLite database (auto-seeded at runtime)
+examples/*.db
+examples/*.db-shm
+examples/*.db-wal
+
+# Compiled binary
+/nl2query-graph

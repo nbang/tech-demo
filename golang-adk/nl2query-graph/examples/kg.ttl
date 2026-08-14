@@ -1,0 +1,46 @@
+@prefix ex:  <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+
+# --- Products (mirrors the SQLite `products` table) ---
+ex:keyboard a ex:Product ;
+    ex:name     "Mechanical Keyboard" ;
+    ex:price    129 ;
+    ex:category "peripherals" .
+
+ex:mouse a ex:Product ;
+    ex:name     "Wireless Mouse" ;
+    ex:price    49.90 ;
+    ex:category "peripherals" .
+
+ex:monitor a ex:Product ;
+    ex:name     "4K Monitor" ;
+    ex:price    349 ;
+    ex:category "displays" .
+
+ex:hub a ex:Product ;
+    ex:name     "USB-C Hub" ;
+    ex:price    79.50 ;
+    ex:category "accessories" .
+
+ex:stand a ex:Product ;
+    ex:name     "Laptop Stand" ;
+    ex:price    119 ;
+    ex:category "accessories" .
+
+ex:headset a ex:Product ;
+    ex:name     "Noise-Cancel Headset" ;
+    ex:price    199 ;
+    ex:category "audio" .
+
+# --- People (a small social graph) ---
+ex:alice a ex:Person ;
+    ex:name  "Alice" ;
+    ex:knows ex:bob ;
+    ex:knows ex:carol .
+
+ex:bob a ex:Person ;
+    ex:name  "Bob" ;
+    ex:knows ex:carol .
+
+ex:carol a ex:Person ;
+    ex:name "Carol" .
