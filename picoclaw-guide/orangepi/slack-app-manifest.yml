@@ -1,0 +1,66 @@
+# PicoClaw Slack app manifest — Socket Mode (no public webhook needed).
+#
+# Create at https://api.slack.com/apps -> "Create New App" -> "From an app manifest"
+# -> pick your workspace -> paste this YAML.
+#
+# After creating:
+#   1. Basic Information -> App-Level Tokens -> "Generate Token and Scopes"
+#      name: socket, scope: connections:write  -> gives the xapp-... token
+#   2. Install App -> Install to Workspace     -> gives the xoxb-... token
+#   3. In Slack, invite the bot to the target channel: /invite @picoclaw
+display_information:
+  name: PicoClaw
+  description: Daily news digest and team assistant, running on an Orange Pi
+  background_color: "#3e5db9"
+
+features:
+  bot_user:
+    display_name: picoclaw
+    always_online: true
+  # REQUIRED for DMs. Without this block Slack defaults the Messages tab to
+  # read-only, and the DM composer shows "Sending messages to this app has been
+  # turned off" -- with every im:* scope and message.im event correctly in place.
+  # It is not a scope problem and no reinstall fixes it; it is this checkbox
+  # (App Home -> Show Tabs -> Messages Tab). Reload the Slack client after
+  # changing it, since the disabled composer is cached client-side.
+  app_home:
+    home_tab_enabled: false
+    messages_tab_enabled: true
+    messages_tab_read_only_enabled: false
+
+oauth_config:
+  scopes:
+    bot:
+      # post the digest and reply in thread
+      - chat:write
+      # read messages in public channels the bot is invited to
+      - channels:history
+      - channels:read
+      # same for private channels, if you use one
+      - groups:history
+      - groups:read
+      # direct messages to the bot
+      - im:history
+      - im:read
+      - im:write
+      # respond when someone @-mentions it
+      - app_mentions:read
+      # resolve user IDs to names in summaries
+      - users:read
+      # REQUIRED to read uploaded images/files. Without it Slack serves an HTML
+      # login page (HTTP 200!) instead of the file, so picoclaw silently attaches
+      # nothing and the model never sees the image.
+      - files:read
+
+settings:
+  # Socket Mode: the board dials out to Slack, so the Orange Pi needs no
+  # inbound port, no public IP, and no reverse proxy.
+  socket_mode_enabled: true
+  event_subscriptions:
+    bot_events:
+      - app_mention
+      - message.channels
+      - message.groups
+      - message.im
+  org_deploy_enabled: false
+  token_rotation_enabled: false

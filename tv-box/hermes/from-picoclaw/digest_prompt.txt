@@ -1,0 +1,45 @@
+Viết "Bản tin sáng" cho nhóm, bằng tiếng Việt.
+
+QUY TRÌNH:
+1. Gọi web_search nhiều lần với range="d" để lấy tin trong 24 giờ qua. Tìm riêng cho từng mục bên dưới, mỗi mục ít nhất 2 truy vấn khác nhau.
+2. Dùng web_fetch để mở các nguồn quan trọng và lấy số liệu cụ thể. KHÔNG viết chi tiết nào mà bạn chưa đọc được từ nguồn.
+3. Bỏ qua tin đồn chưa có nguồn sơ cấp. Nếu có tin lan truyền nhưng không xác minh được, ghi vào phần Ghi chú cuối bản tin.
+
+BỐ CỤC (4 mục, mỗi mục 3-5 gạch đầu dòng, tin mới nhất trước):
+*Công nghệ & AI*
+*Kỹ thuật phần mềm*
+*Tin thế giới & kinh doanh*
+*Việt Nam*
+
+MỖI GẠCH ĐẦU DÒNG:
+- Mở đầu bằng một câu tóm tắt in đậm, kết thúc bằng dấu chấm.
+- Sau đó 1-2 câu chi tiết, ưu tiên con số cụ thể (số tiền, phần trăm, ngày, quy mô).
+- Kết thúc bằng nguồn dạng link.
+
+ĐỊNH DẠNG SLACK — bắt buộc, đây KHÔNG phải markdown thường:
+- In đậm dùng MỘT dấu sao: *chữ đậm*. Tuyệt đối không dùng hai dấu sao.
+- Link dùng dạng <https://url|Tên nguồn, dd/MM>. Tuyệt đối không dùng [text](url).
+- Gạch đầu dòng bắt đầu bằng "• ".
+- Tiêu đề mục viết trên một dòng riêng, in đậm.
+
+Dòng đầu tiên của bản tin: *Bản tin sáng — <thứ>, <dd/MM/yyyy>* và ghi rõ mốc thời gian dữ liệu.
+Nếu một mục không có tin đáng kể trong 24 giờ, ghi một dòng in nghiêng _không có tin nổi bật_ thay vì bịa tin.
+Kết thúc bằng dòng Ghi chú nếu có tin bị loại vì chưa xác minh.
+
+GIỚI HẠN BẮT BUỘC (để tránh vượt giới hạn payload của API):
+- CHỈ web_fetch các URL bài viết cụ thể. TUYỆT ĐỐI không fetch trang chủ như reuters.com, techcrunch.com, bloomberg.com, vnexpress.net trần.
+- Mỗi lần web_fetch đặt maxChars tối đa 3000.
+- Tối đa 8 lần web_fetch cho toàn bộ bản tin.
+- Nếu một truy vấn không ra kết quả, đổi từ khoá; không lặp lại quá 2 truy vấn tương tự.
+- Nếu sau 3 vòng tìm kiếm vẫn thiếu dữ liệu cho một mục, ghi _không có tin nổi bật_ và đi tiếp.
+
+QUY TẮC IN ĐẬM (bắt buộc, lần trước làm sai):
+- ĐÚNG:  *Bản tin sáng — Thứ Năm, 13/08/2026*
+- SAI:   * Bản tin sáng — Thứ Năm, 13/08/2026 *
+  Dấu sao phải DÍNH LIỀN ký tự đầu và ký tự cuối, không có dấu cách xen giữa.
+
+ĐA DẠNG NGUỒN (bắt buộc):
+- Mỗi gạch đầu dòng phải đến từ một URL KHÁC NHAU. Không lấy nhiều gạch đầu dòng từ cùng một bài viết.
+- Mục *Công nghệ & AI* và *Tin thế giới & kinh doanh*: tìm bằng TIẾNG ANH, ưu tiên nguồn quốc tế (Reuters, TechCrunch, The Verge, Bloomberg, BleepingComputer).
+- Mục *Kỹ thuật phần mềm*: tin về release, CVE, sự cố bảo mật, công cụ lập trình. Không đưa tin tuyển sinh hay cuộc thi sinh viên.
+- Mục *Việt Nam*: tìm bằng TIẾNG VIỆT, nguồn trong nước.

@@ -1,0 +1,20 @@
+[Unit]
+Description=NIM GIF filter (strips data:image/gif before NVIDIA, which 415s on it)
+After=network-online.target
+Wants=network-online.target
+# picoclaw routes every LLM call through this, so it must be up first.
+Before=picoclaw.service
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /usr/local/bin/nim-gif-filter.py
+Restart=always
+RestartSec=5
+MemoryMax=80M
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nim-gif-filter
+
+[Install]
+WantedBy=multi-user.target

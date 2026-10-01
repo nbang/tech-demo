@@ -1,0 +1,24 @@
+[Unit]
+Description=PicoClaw gateway (NVIDIA NIM + Slack daily news)
+Documentation=https://docs.picoclaw.io/
+After=network-online.target time-sync.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Environment=HOME=/root
+Environment=PICOCLAW_HOME=/root/.picoclaw
+Environment=PICOCLAW_CONFIG=/root/.picoclaw/config.json
+WorkingDirectory=/root/.picoclaw
+ExecStart=/usr/local/bin/picoclaw --no-color gateway
+Restart=always
+RestartSec=10
+# 991 MB board — bound the agent so a runaway fetch cannot take the box down.
+MemoryMax=300M
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=picoclaw
+
+[Install]
+WantedBy=multi-user.target

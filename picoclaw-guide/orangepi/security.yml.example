@@ -1,0 +1,41 @@
+# Template for /root/.picoclaw/.security.yml on the Orange Pi.
+#
+# picoclaw maps these values onto config.json by field name — no `ref:` syntax,
+# no placeholders in config.json. Keeping secrets here means config.json stays
+# safe to read, diff and copy around.
+#
+# Install with:
+#   scp security.yml.example root@192.168.2.180:/root/.picoclaw/.security.yml
+#   ssh root@192.168.2.180 'chmod 600 /root/.picoclaw/.security.yml'
+#
+# NEVER commit the filled-in version.
+
+model_list:
+  # Must match `model_name` in config.json. api_keys is ALWAYS an array,
+  # even for a single key. Multiple keys rotate per-request.
+  nim-primary:
+    api_keys:
+      - "nvapi-REPLACE_ME"
+
+# NOTE THE NESTING — this cost real debugging time on v0.3.1.
+#
+# Channel tokens go under `channel_list.<name>.settings.*`. They do NOT go at
+# `channels.<name>.*` (what docs/security/security_configuration.md shows) and
+# they do NOT go at `channel_list.<name>.<token>` (what
+# docs/channels/slack/README.md shows). Both of those are stale for v0.3.1.
+#
+# The failure mode is silent and misleading: with the tokens in the wrong place
+# the gateway logs "No channels enabled" / `enabled_channels=0` and reports no
+# error at all, because manager.go treats an empty BotToken as "not ready" and
+# just skips the channel. Putting the tokens inline in config.json instead is at
+# least loud — it hard-fails with "unknown field(s): channel_list.slack.bot_token".
+#
+# `picoclaw onboard` generates the authoritative shape (`channel_list: slack:
+# settings: {}`); trust that over the prose docs.
+channel_list:
+  slack:
+    settings:
+      # Install App -> Bot User OAuth Token
+      bot_token: "xoxb-REPLACE_ME"
+      # Basic Information -> App-Level Tokens (scope: connections:write)
+      app_token: "xapp-REPLACE_ME"
