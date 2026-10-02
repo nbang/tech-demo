@@ -81,7 +81,7 @@ format.
 ## What is being migrated
 
 Probed live on the Orange Pi 2026-09-24, plus
-[picoclaw-guide/orangepi/README.md](../picoclaw-guide/orangepi/README.md):
+[orangepi/README.md](../orangepi/README.md):
 
 | Piece | Today (picoclaw 0.3.1) | Notes |
 |---|---|---|
@@ -192,7 +192,7 @@ Each phase is independently reversible. picoclaw keeps running until phase 5.
 ### 6 — Decommission the Orange Pi (after ~2 weeks clean)
 - [ ] Image its SD card to the Mac, archive `~/.picoclaw` (contains secrets —
       store encrypted)
-- [ ] Power off; update [picoclaw-guide/orangepi/README.md](../picoclaw-guide/orangepi/README.md) to say it is retired
+- [ ] Power off; update [orangepi/README.md](../orangepi/README.md) to say it is retired
 
 **Rollback at any point before 6:** stop Hermes' gateway, `systemctl enable
 --now nim-gif-filter picoclaw` on the Pi, re-enable `ban-tin-sang`. If the

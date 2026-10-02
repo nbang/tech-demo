@@ -754,7 +754,7 @@ turn does on every iteration.
 ## Transmission control from Slack — MCP server (added 2026-08-22)
 
 Lets the bot answer "what's downloading?" and "add this magnet" for the
-Chainedbox NAS at `192.168.2.14` (see [../chainbox/README.md](../chainbox/README.md)).
+Chainedbox NAS at `192.168.2.14` (see [../omv-chainedbox/README.md](../omv-chainedbox/README.md)).
 
 ```
 Slack DM → picoclaw agent (Orange Pi) → MCP stdio → Transmission RPC (192.168.2.14:9091)

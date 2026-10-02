@@ -14,7 +14,7 @@ what provides most of the visible services and its own init system.
 
 | | |
 |---|---|
-| SoC / arch | Rockchip RK3328, `aarch64`, 4 cores @ 1.008 GHz |
+| SoC / arch | Rockchip RK3328, `aarch64`, 4× Cortex-A53, max 1.512 GHz (`lscpu`; idles at 1.008) |
 | RAM | **971 MB** (no swap) — the hard ceiling on this box |
 | Board DT | `pine64,rock64` + `rockchip,rk3328`, model string `Chainedbox` |
 | NIC | `eth0` @ 1000 Mb/s |
@@ -30,7 +30,13 @@ what provides most of the visible services and its own init system.
 | `sda1` | ST9500325AS (5400 rpm laptop drive) | 458 G | `/srv/dev-disk-by-label-agent` | 165 G / 37 % |
 | `sdb1` | TOSHIBA DT01ACA200 (7200 rpm) | 1.8 T | `/srv/dev-disk-by-label-data` | **1.1 T / 57 %** |
 
-Both drives report `SMART overall-health: PASSED`.
+Both drives report `SMART overall-health: PASSED` — but see the 2026-10-02
+re-check: **`sda` is developing bad sectors.**
+
+| Device | Power-on hours (2026-10-02) | Reallocated | Pending |
+|--------|-----------------------------|-------------|---------|
+| `sda` ST9500325AS | 63,055 h (~7.2 y) | **9** | **3** |
+| `sdb` DT01ACA200 | 50,369 h (~5.7 y) | 0 | 0 |
 
 ## Firmware / software versions (all EOL)
 
@@ -82,6 +88,17 @@ Still scoped to the **stale `192.168.31.0/24`** subnet — dead config from a
 prior network.
 
 ## Change log
+
+**2026-10-02 — re-check (read-only).** Box had been rebooted (uptime 47 min,
+was 98 days on 08-22). Service list unchanged from the table below.
+`sdb1` grew to **1.1 T / 61 %** (726 G free). Idle temp 64–70 °C, still at the
+throttle trip point. **`sda` (the 7-year-old 2.5" laptop drive, label
+`agent`) now shows 9 reallocated + 3 pending sectors** — overall SMART still
+says PASSED, but pending sectors on a drive this old are an early-failure sign.
+Copy anything irreplaceable off `/srv/dev-disk-by-label-agent` (165 G) and
+plan to replace the drive. Role: always-on alongside the TX3 (similar
+quad-A53 class); the x86 mini PC (`192.168.2.114`, see [../mini-pc/](../mini-pc/README.md)) is
+on-demand only.
 
 **2026-08-22 — `ttyd` removed.** It was `ttyd -p 4200 ssh 127.0.0.1`, started
 at boot by `/opt/entware_init.sh` → `rc.unslung` → `/opt/etc/init.d/S51ttyd`

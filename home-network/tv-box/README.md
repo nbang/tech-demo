@@ -328,7 +328,9 @@ key that is gone a minute later and SSH screams MITM. Same MAC + same banner →
   `ROOTFS_EMMC`), `/boot` `mmcblk2p1`; Hermes gateway auto-starts via linger
   and reconnects to Slack ~1 min after power-on. Android is gone from the box
   — restore from `gdrive:backups/tx3-mini/`. The USB stick is no longer needed
-  (it still holds the older USB system as a rescue boot).
+  (it held the older USB system as a rescue boot until 2026-10-02, when it was
+  overwritten with the MX Linux installer for the mini PC — re-flash from
+  ophub if a rescue boot is ever needed).
 - No RTC: the clock boots at the last saved time and NTP corrects it, so
   systemd "active since" times right after boot can look an hour off.
 - **Boot race, self-healing:** the gateway is a systemd *user* unit, so it can
