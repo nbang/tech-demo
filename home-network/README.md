@@ -1,56 +1,61 @@
 # Home network
 
-Runbooks and surveys for the boxes on the home LAN (`192.168.2.0/24`, gateway
-`192.168.2.1`). One folder per device; each README is the source of truth for
-that box.
+Home LAN `192.168.2.0/24`, gateway `192.168.2.1`. One folder per device; each
+README is the source of truth for that box.
 
 ## Devices
 
-| Box | IP | Hardware | OS | Role | Status | Docs |
-|-----|----|----------|----|------|--------|------|
-| **TX3 mini** | `192.168.2.20` | Amlogic S905W, 4× A53, 2 GB | Armbian trixie (eMMC) | Hermes Slack team bot | **always-on** | [tv-box/](tv-box/README.md) |
-| **Chainedbox L1 Pro** ("the OMV") | `192.168.2.14` | Rockchip RK3328, 4× A53, 1 GB, 500 G + 2 T HDD | Debian 9 + OMV 4 (EOL) | NAS, downloads, DLNA, AdGuard DNS | **always-on** | [omv-chainedbox/](omv-chainedbox/README.md) |
-| **Mini PC** `mx` | `192.168.2.114` | Xeon E-2176M 6C/12T, 16 GB, 256 G SSD | MX Linux 25.3 Xfce | GUI + heavy background jobs | **on-demand** | [mini-pc/](mini-pc/README.md) |
-| **Orange Pi PC** | `192.168.2.180` | Allwinner H3, ARMv7 32-bit, 1 GB | Armbian trixie | was the picoclaw Slack bot | **retired** 2026-09-24 (SD kept as rollback) | [orangepi/](orangepi/README.md) |
-| **D905** retro box | — | Amlogic S905L | EmuELEC (SD) / Android (eMMC) | retro gaming | broken — SD failing, eMMC boot-loops | backup scripts in [tv-box/](tv-box/) |
+| Box | IP | MAC | What | Status | Docs |
+|-----|----|-----|------|--------|------|
+| Viettel ONT | `192.168.1.1` | — | DASAN H646W fiber modem, PPPoE behind CGNAT | always-on | [router/](router/README.md) |
+| Mesh main | `.1` | `24:0b:2a:d6:ce:5c` | Viettel vAP-32X6V1: gateway, DHCP, DNS | always-on | [router/](router/README.md) |
+| Mesh node 2 / 3 | `.2` / `.3` | `24:0b:2a:d5:c7:38` / `…d7:08:6c` | vAP-32X6V1 satellites, wired backhaul | always-on | [router/](router/README.md) |
+| **TX3 mini** | `.9` | `06:42:00:80:93:c1` | S905W, 2 GB, Armbian: Hermes Slack bot, purifier poller | always-on | [tv-box/](tv-box/README.md) |
+| **Chainedbox** ("the OMV") | `.10` | `66:c9:1c:46:67:db` | RK3328, 1 GB, Debian 12 + OMV 7: NAS, downloads, DLNA, AdGuard | always-on | [omv-chainedbox/](omv-chainedbox/README.md) |
+| **Mini PC** `mx` | `.11` | `6c:4b:90:1a:68:bb` | Xeon E-2176M, 16 GB, MX Linux 25.3 | on-demand | [mini-pc/](mini-pc/README.md) |
+| LG TV 55UM7300PTA | `.216` | `74:40:be:e3:c9:86` | webOS 4.5, Developer Mode | when on | [lg-tv/](lg-tv/README.md) |
+| Yi Home cam #1 / #2 | `.153` / `.222` | `b0:d5:9d:29:93:25` / `…4d:6e:59` | Hi3518 V100 + SD hack, RTSP :554 | always-on | [yi-camera/](yi-camera/README.md) |
+| Mi Air Purifier 2 mini | `.139` | `78:11:dc:4c:30:7a` | `zhimi.airpurifier.m1`, miIO UDP 54321 | always-on | [air-purifier/](air-purifier/README.md) |
+| D905 retro box | — | — | S905L, EmuELEC SD / Android NAND | broken | [tv-box/D905.md](tv-box/D905.md) |
+| Orange Pi PC | — | — | H3, ARMv7, SD wiped | spare | [orangepi/](orangepi/README.md) |
 
-The two always-on boxes are the same low-power quad-A53 class; the mini PC is
-~10× either of them and is only powered up when needed.
-
-## Access
-
-| Box | Login |
-|-----|-------|
-| TX3 | `ssh root@192.168.2.20` (key) |
-| Chainedbox | `ssh root@192.168.2.14` (key) · OMV UI `http://192.168.2.14:88` (port 80 is the 粒子云 launcher) |
-| Mini PC | `ssh bang@192.168.2.114` (key; sudo needs password) |
-
-All addresses are DHCP. **Reserve them on the router** — the mini PC already
-moved once (`.28` → `.114`) after its reinstall. Lost a box? Find it by MAC:
+**Addressing:** everything is DHCP. `.1`–`.3` is the router and mesh, and
+`.9`–`.16` is reserved for wired boxes (next free: `.12`). The rest is
+dynamic. To find a box that moved:
 
 ```bash
 for i in $(seq 1 254); do ping -c1 -W300 192.168.2.$i >/dev/null 2>&1 & done; wait
-arp -an | grep -iE '06:42:00:80:93:c1|66:c9:1c:46:67:db|6c:4b:90:1a:68:bb'
+arp -an | grep -i <mac>
 ```
 
-| MAC | Box |
+## Access
+
+| Box | How |
 |-----|-----|
-| `06:42:00:80:93:c1` | TX3 |
-| `66:c9:1c:46:67:db` | Chainedbox |
-| `6c:4b:90:1a:68:bb` | Mini PC |
+| TX3 | `ssh root@192.168.2.9` (key) |
+| Chainedbox | `ssh root@192.168.2.10` (key) · OMV `http://192.168.2.10:88` · AdGuard `:8080` |
+| Mini PC | `ssh bang@192.168.2.11` (key; sudo needs a password) |
+| Yi cams | `rtsp://192.168.2.{153,222}:554/ch0_0.h264` (TCP) |
+| Air purifier | python-miio API + token from the Xiaomi cloud |
+| LG TV | Dev Mode SSH `prisoner@192.168.2.216 -p 9922` (key `~/.ssh/lgtv_webos`) or `ares-* -d lgtv` |
 
 ## Open issues
 
-- **Chainedbox `sda` is failing** (9 reallocated + 3 pending sectors, ~63k h,
-  2026-10-02). Copy `/srv/dev-disk-by-label-agent` off and replace the drive.
-- Chainedbox security to-dos still open: aria2 RPC has no token, FileBrowser
-  default creds, no firewall, whole stack EOL.
-- DHCP reservations for all three live boxes.
-- TX3: `apt full-upgrade`, non-root user, `PasswordAuthentication no`.
+- **Chainedbox `sda` is failing.** Copy `/srv/dev-disk-by-label-agent` off and
+  replace the drive.
+- **Hermes bot:** point its Transmission RPC host at `192.168.2.10`.
+- **Air purifier filter is used up** (0 %). Replace it with a 2 mini filter.
+- **Yi cam `.153` is offline** (no DHCP lease since at least 2026-10-11).
+- Yi cams expose anonymous FTP and telnet. Isolate them on a guest/IoT Wi-Fi.
+- Chainedbox: anonymous FTP on, no firewall, OMV 7 on a held 2019 kernel.
+- Nothing uses AdGuard: the router hands out `8.8.8.8`/`1.1.1.1` as DNS.
+- Reserve addresses for the LG TV, Yi cams and air purifier.
+- LG TV Developer Mode session expires (~1000 h). Extend it, or sideloaded
+  apps get wiped.
+- TX3: `apt full-upgrade`, add a non-root user, set `PasswordAuthentication no`.
 
 ## Shared gear
 
-- **Kingston DataTraveler G3 8 GB USB stick** — was the TX3's Armbian rescue
-  boot; since 2026-10-02 it is the **MX Linux 25.3 installer**.
-- Backups of the TV boxes' Android eMMC/SD live in `gdrive:backups/`
-  (`tx3-mini`, `d905`).
+- **Kingston DataTraveler G3 8 GB USB stick**: the Chainedbox rescue stick
+  (patched Armbian trixie 6.18; hides both data disks).
+- Android eMMC/SD backups of the TV boxes: `gdrive:backups/{tx3-mini,d905}`.

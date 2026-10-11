@@ -1,245 +1,134 @@
-# Chainedbox L1 Pro — Media / NAS Box (`192.168.2.14`)
+# Chainedbox L1 Pro — Media / NAS Box (`192.168.2.10`, MAC `66:c9:1c:46:67:db`)
 
-Home media/NAS box at `root@192.168.2.14`. Originally surveyed externally
-2026-08-22; **re-verified from inside the box (root SSH, key auth) the same
-day**. Everything below is confirmed on-host unless marked otherwise.
+Always-on home NAS, download and DLNA box. `ssh root@192.168.2.10` (key auth).
+OMV UI: <http://192.168.2.10:88>. AdGuard UI: <http://192.168.2.10:8080>.
 
-## What it is
+**The address comes from DHCP**, with a reservation for `.10` on the mesh main
+router. Don't set a static IP on the box. If it's missing, find it by MAC:
+`arp -an | grep 66:c9:1c:46:67:db`.
 
-A **Chainedbox L1 Pro** (我家云 / "Particle Cloud" box) — RK3328 quad-core
-ARM64 appliance, reflashed with **ayufan's Rock64 Debian image** plus
-**OpenMediaVault 4** and a third-party Chinese **Entware app bundle**
-(`/opt`, "EntWare扩展集合环境", made by *wdmomo*, 2019). The Entware layer is
-what provides most of the visible services and its own init system.
+## Hardware
 
 | | |
 |---|---|
-| SoC / arch | Rockchip RK3328, `aarch64`, 4× Cortex-A53, max 1.512 GHz (`lscpu`; idles at 1.008) |
-| RAM | **971 MB** (no swap) — the hard ceiling on this box |
-| Board DT | `pine64,rock64` + `rockchip,rk3328`, model string `Chainedbox` |
-| NIC | `eth0` @ 1000 Mb/s |
-| Root FS | eMMC `mmcblk0p7`, 7.1 G, **48 % used** |
-| Boot | eMMC (`/boot/efi` + extlinux). **No SPI/MTD** — reflash is eMMC/SD only |
-| Uptime | 98 days at time of check |
-| Idle temp | 60–70 °C (passive throttle trip at 70 °C, critical 95 °C) |
+| SoC | Rockchip RK3328, `aarch64`, 4× Cortex-A53 @ 1.5 GHz. Board DT `pine64,rock64` |
+| RAM | **971 MB**, no swap. The hard limit on this box |
+| NIC | **`end0`**, 1 Gb/s. **No permanent MAC** (`66:c9:…` is assigned at boot) |
+| Root FS | eMMC `mmcblk0p7`, 7.1 G, ~58 % used |
+| Boot | ayufan U-Boot 2017.09 → `/boot/extlinux/extlinux.conf` on p7. **No SD slot, no SPI** |
+| Temp | Idles at 60–70 °C (throttle trip 70 °C). `fan.service` (`/sbin/fan`) drives the fan |
 
-### Storage
+### Disks (both USB)
 
-| Device | Model | Size | Mount | Used |
-|--------|-------|------|-------|------|
-| `sda1` | ST9500325AS (5400 rpm laptop drive) | 458 G | `/srv/dev-disk-by-label-agent` | 165 G / 37 % |
-| `sdb1` | TOSHIBA DT01ACA200 (7200 rpm) | 1.8 T | `/srv/dev-disk-by-label-data` | **1.1 T / 57 %** |
+| Dev | Label / mount | Drive | Size | Health |
+|-----|---------------|-------|------|--------|
+| `sda1` | `agent` → `/srv/dev-disk-by-label-agent` | Seagate ST9500325AS 2.5" (FreeAgent Go, USB `0bc2:2100`) | 458 G, ~37 % | **Failing**: reallocated + pending sectors, 5190 Reported_Uncorrect, ~63k h |
+| `sdb1` | `data` → `/srv/dev-disk-by-label-data` | Toshiba DT01ACA200 (inside the case, USB `05e3:0735`) | 1.8 T, ~60 % | OK, 0 reallocated |
 
-Both drives report `SMART overall-health: PASSED` — but see the 2026-10-02
-re-check: **`sda` is developing bad sectors.**
+- `data`: `media/` (`videos`, `torrent`, `movies`, `musics`, `clips`) and `bk/`.
+- `agent`: `backup/` and `tmp/`. Keep it read-only and outside OMV until it's
+  replaced. `agent:/tmp/` was already copied to `data:/bk/` once.
+- **To do: copy anything still needed off `agent`, then replace the drive.**
+  [`copy-agent-backup.sh`](copy-agent-backup.sh) rsyncs a folder from `agent`
+  to `data` (`SRC`/`DST` env vars). It resumes, skips unreadable files and
+  logs failures to `/root/`.
 
-| Device | Power-on hours (2026-10-02) | Reallocated | Pending |
-|--------|-----------------------------|-------------|---------|
-| `sda` ST9500325AS | 63,055 h (~7.2 y) | **9** | **3** |
-| `sdb` DT01ACA200 | 50,369 h (~5.7 y) | 0 | 0 |
+## Software
 
-## Firmware / software versions (all EOL)
+| Component | Version | Notes |
+|-----------|---------|-------|
+| Debian | 12 "bookworm" | security via Debian LTS until ~mid-2028 |
+| OpenMediaVault | 7 (Sandworm) | EOL, but works |
+| Kernel | `5.3.0-1119-ayufan` (2019) | **held on purpose**; the ayufan repo is dead |
+| U-Boot | `2017.09-rockchip-ayufan` | frozen |
 
-| Component | Version | Status |
-|-----------|---------|--------|
-| U-Boot | `2017.09-rockchip-ayufan-1065` (Aug 2019) | frozen, upstream gone |
-| Kernel | `5.3.0-1119-ayufan` (Oct 2019) | ~7 years old |
-| Debian | **9 "stretch"** | EOL since Jun 2022 (on `archive.debian.org`) |
-| OpenMediaVault | **4.1.36 (Arrakis)** | EOL; current OMV is 7/8 |
-| OpenSSH | 7.4p1 | EOL |
-| OpenSSL | 1.1.0l / 1.0.2u | EOL |
-| PHP | 7.0.33 (system), 7.x-fpm (Entware) | EOL |
+The upgrade stops here by the owner's choice. No kernel swap, no Debian 13 /
+OMV 8. apt uses `deb.debian.org` bookworm(-updates), `security.debian.org`
+bookworm-security and OMV `sandworm`. The ayufan list is
+`ayufan-rock64.list.disabled`. Never `apt` with `--allow-change-held-packages`.
 
-`apt-get upgrade` reports **0 packages to upgrade** — not because it's current,
-but because no repo has anything left to give. The ayufan kernel PPA
-(`deb.ayufan.eu/orgs/ayufan-rock64/releases`) is **dead**: `no longer have a
-Release file`. There is no in-place patch path for the kernel or bootloader.
-
-## Live services (verified via `ss -lntup`)
+## Services
 
 | Port | Service | Notes |
 |------|---------|-------|
-| 22 | sshd | key auth now installed; password auth also on |
-| 53 + 8080 | **AdGuard Home** | DNS sinkhole + its web UI (⚠️ README previously called 8080 a "React login app") |
-| 80–99 | nginx (Entware `onmp`) | 我家云 launcher + AriaNg, h5ai, phpMyAdmin, etc. across ~10 vhost ports |
-| 88 | **OpenMediaVault** panel | the real NAS admin UI |
-| 3306 | MySQL (Entware) | **bound to all interfaces** |
-| 8088 | FileBrowser | bundle docs its default creds as `root` / `omv` |
-| 8899 | easy-explorer (易有云) | |
-| 9091 + 51413 | **Transmission** | the sole torrent client (114 torrents); auth required |
-| 6800 | **aria2 RPC** | `rpc-secret` is **commented out** → no token |
-| 8200 | MiniDLNA | DLNA streaming |
-| 21 | ProFTPD | |
-| 139 / 445 | Samba | |
-| 548 / 4700 | netatalk (AFP) | |
-| 111 / 2049 | NFS | exports below |
-| 5357 | WSD (python3) | Windows discovery |
+| 22 | sshd | key auth |
+| 53, 8080 | AdGuard Home | DNS + web UI. The LAN's DHCP hands out 8.8.8.8/1.1.1.1, so **nothing uses it yet** |
+| 88 | OMV 7 UI | nginx + php8.2-fpm |
+| 21 | ProFTPD (`openmediavault-ftp`) | ⚠️ anonymous login on, no TLS |
+| 139, 445 | Samba | one share, `tmp` → `agent:/tmp/`, guest OK, no Samba users |
+| 8200, 1900 | MiniDLNA | no OMV plugin; edit `/etc/minidlna.conf` by hand (7 `media_dir`s on `data`, name "OMV"). The LG TV uses it |
+| 9091, 51413 | Transmission (Entware, `/opt`) | RPC auth required; the Hermes Slack bot uses it |
+| 111, 2049 | NFS | exports still scoped to a dead `192.168.31.0/24` |
+| 3702, 5357, 5353 | WSD, avahi | discovery |
 
-**Not running despite being advertised:** Jellyfin/Emby on `:8096` — nothing
-listening, connection refused. Seafile/Seahub have init scripts but no
-listener. **Docker is not installed.**
+The Entware bundle in `/opt` is started from `/etc/rc.local` →
+`/opt/entware_init.sh`. Everything in it is disabled (`chmod -x` on the
+`S*` scripts, lines commented out) **except `S88transmission`**. Off in OMV:
+`nmbd`, performance graphs (`collectd`/`rrdcached`) and SMART monitoring.
+No Docker, no Jellyfin.
 
-### NFS exports
-```
-/export       192.168.31.0/24
-/export/tmp   192.168.31.0/24
-```
-Still scoped to the **stale `192.168.31.0/24`** subnet — dead config from a
-prior network.
+### Security
 
-## Change log
+No firewall (`iptables` INPUT is empty, policy ACCEPT), EOL OMV, a 2019
+kernel, anonymous FTP and an unaudited root Transmission. **Keep it LAN-only.
+Never port-forward anything to it.**
 
-**2026-10-02 — re-check (read-only).** Box had been rebooted (uptime 47 min,
-was 98 days on 08-22). Service list unchanged from the table below.
-`sdb1` grew to **1.1 T / 61 %** (726 G free). Idle temp 64–70 °C, still at the
-throttle trip point. **`sda` (the 7-year-old 2.5" laptop drive, label
-`agent`) now shows 9 reallocated + 3 pending sectors** — overall SMART still
-says PASSED, but pending sectors on a drive this old are an early-failure sign.
-Copy anything irreplaceable off `/srv/dev-disk-by-label-agent` (165 G) and
-plan to replace the drive. Role: always-on alongside the TX3 (similar
-quad-A53 class); the x86 mini PC (`192.168.2.114`, see [../mini-pc/](../mini-pc/README.md)) is
-on-demand only.
+## Gotchas
 
-**2026-08-22 — `ttyd` removed.** It was `ttyd -p 4200 ssh 127.0.0.1`, started
-at boot by `/opt/entware_init.sh` → `rc.unslung` → `/opt/etc/init.d/S51ttyd`
-(not a systemd unit, which is why nothing in `/etc` referenced it). ttyd 1.5.1
-(2019), no `-c` credential and no TLS, so the HTTP layer was open to anyone on
-the LAN — though the terminal it opened ran `ssh 127.0.0.1`, which then
-prompted for a password. So it was an **unauthenticated browser-based SSH
-brute-force surface**, not the direct root shell the first survey assumed.
+- **Network files that must stay.** OMV 7's netplan matches the NIC by
+  *permanent* MAC, which this NIC lacks, so an OMV-only config boots with no
+  network. The fallback is `/etc/systemd/network/05-chainedbox-end0.network`
+  (`Name=end0 eth0`, `DHCP=ipv4`, `ClientIdentifier=mac`). OMV redeploys don't
+  delete it. Keep `dhcpcd` and `NetworkManager` disabled: one DHCP client only.
+- **AdGuard and port 53.** `/etc/systemd/resolved.conf.d/adguard.conf`
+  (`DNSStubListener=no`) frees port 53. `/etc/resolv.conf` →
+  `/run/systemd/resolve/resolv.conf`, and `/etc/default/openmediavault` sets
+  `OMV_SYSTEMD_NETWORKD_RESOLVCONF_TARGET` to the same path, otherwise OMV puts
+  the stub symlink back.
+- `/etc/default/openmediavault` also sets `OMV_APT_USE_OS_SECURITY="no"` and
+  `OMV_APT_USE_KERNEL_BACKPORTS="no"`. Keep both.
+- Don't purge `board-package-rock64` (`rc` state). Its conffiles hold network
+  config.
+- No RTC. If the clock is far off after boot, force a sync (chrony; untested
+  on this box): `systemctl stop chrony; chronyd -q; systemctl start chrony`.
+- Before removing an OMV plugin, `apt-mark manual` its daemon, or autoremove
+  takes it too (this happened to `minidlna`).
+- No tmux on the box. Run long jobs with `systemd-run` so they survive an SSH
+  drop. Inside `ssh '…'`, `pkill -f <path>` can kill the remote shell; use
+  `pkill -x`.
 
-Actions taken:
-- `/opt/etc/init.d/S51ttyd stop`
-- `opkg remove ttyd` (removed `/opt/bin/ttyd`)
-- `rm /opt/etc/init.d/S51ttyd` — the init script was **not** part of the opkg
-  package (`ttyd.list` contained only the binary), so `opkg remove` left it
-  behind and it would have survived a reboot as a dead-binary start attempt
-- removed the two 超级终端 launcher tiles from `/opt/wwwroot/navi/index.php`
-  (`php -l` clean afterwards)
-- backups in `/root/backup-2026-08-22/`
+## Recovery (rescue USB stick)
 
-Verified: `:4200` closed from the LAN, launcher (`:80`) and OMV (`:88`) still
-return 200.
+`/boot.scr` on p7 is [`usb-shim.cmd`](usb-shim.cmd), built with
+`mkimage -C none -A arm -T script`. U-Boot runs it before extlinux. It
+chain-loads an Armbian stick if one is plugged in, otherwise the eMMC boots
+as normal.
 
-**2026-08-22 — qBittorrent removed, Transmission promoted to sole client.**
-qBittorrent v4.1.7 held **zero torrents** — a filesystem-wide search found all
-114 `.torrent` files in `/opt/etc/transmission/torrents`, no `.fastresume`
-files anywhere, and an empty `BT_backup`. It had been running idle for 98 days
-while presenting a serious exposure: its config was two lines
-(`[Preferences]` / `WebUI\Port=9080`), so **no Web UI password was set** and
-the built-in `admin` / `adminadmin` default worked. Since `qbittorrent-nox`
-ran as **root** and its API exposes `autorun_program` ("run external program
-on completion"), any LAN host had unauthenticated root RCE — a worse hole than
-the ttyd shell removed earlier the same day.
+1. The stick holds Armbian 26.11 trixie, kernel 6.18 (ophub, Chainedbox build),
+   patched with `usbstoragequirks=…,0x05e3:0x0735:iu,0x0bc2:0x2100:iu` so both
+   data disks stay hidden.
+2. `poweroff`, unplug `agent`, put the stick in the OTG port, power on.
+3. The stick system gets **a different MAC and a new DHCP address**. Find it
+   by SSH banner (`OpenSSH_10.0`), not by MAC. If it isn't up in ~5 min, pull
+   the stick and power-cycle.
+4. On the stick system **the stick is `sda`. Never write to `sd*`.** The eMMC
+   is `mmcblk0`. You can read its journal or restore an image:
+   `gunzip -c <img>.gz | ssh root@<stick-ip> 'dd of=/dev/mmcblk0 bs=4M conv=fsync'`,
+   then check it with a sha256 read back with `iflag=direct`.
 
-A related trap: with no `save_path` configured it defaulted to
-`$HOME/Downloads` = `/root/Downloads`, on the **7.1 GB eMMC root** rather than
-the 2 TB data disk.
+The only full eMMC image (`~/omv-chainedbox-upgrade/phase1/` on the Mac) is
+from **before** the upgrade (Debian 9 / OMV 4). Restoring it means redoing the
+upgrade. Upgrade logs and config backups live in `/root/upgrade-logs/`.
 
-Actions taken:
-- `/opt/etc/init.d/S89qbittorrent stop`
-- `opkg remove qbittorrent` — `qbittorrent.list` contained *both* the binary
-  and the init script, so unlike `ttyd` no manual `rm` was needed
-- launcher `/opt/wwwroot/navi/index.php`: Transmission promoted into
-  qBittorrent's tile slot (position 3) and the now-duplicate Transmission tile
-  removed, across **both** layout sections; added `rel="noreferrer"`
-- backups in `/root/backup-2026-08-22/`; the 88 KB
-  `/opt/etc/qBittorrent_entware` config tree is left in place for rollback
+## History
 
-Verified: `:9080` and `:8999` closed, `:9091` returns 401 (auth prompt),
-launcher and OMV both 200, `php -l` clean. Note the launcher takes up to
-**60 s** to reflect edits — `opcache.revalidate_freq=60`.
-
-### Why the qBittorrent Web UI seemed unreachable
-
-Worth recording, since it wasn't a fault in the service. Clicking the launcher
-tile sent `Referer: http://192.168.2.14/` (origin `:80`) while the target
-origin was `:9080`. **Different port means different origin**, so qBittorrent
-4.1.7's CSRF check rejected it with 401 — while typing the URL directly
-returned 200. Its log recorded the same mismatch back on 2024-12-29 from the
-old `192.168.2.2` addressing. The `rel="noreferrer"` now on the Transmission
-tile prevents this class of failure; Transmission does not perform that origin
-check, so it is belt-and-braces.
-
-## ⚠️ Remaining security issues
-
-1. **aria2 RPC on `:6800` has no `rpc-secret`** — anyone on the LAN can queue
-   downloads. Uncomment and set a token in `/opt/etc/aria2.conf`.
-2. **FileBrowser default credentials** — the bundle's own script documents
-   `root` / `omv`. Change them.
-3. **No firewall at all** — `iptables -L INPUT` is empty with policy `ACCEPT`.
-   ~40 listening sockets, MySQL among them, all reachable from any LAN host.
-4. **Entire stack is EOL** (see firmware table). Do **not** port-forward any of
-   this. Keep it LAN-only, ideally on an isolated VLAN.
-5. **Third-party Chinese bundle in `/opt`** with unaudited binaries
-   (`easy-explorer-arm`, `onmp`) running as root.
-
-Cleared: **no bandwidth-sharing / phone-home daemon found** (grepped for
-particle-cloud, niulink, onethingcloud, xunlei, swarm processes — nothing).
-
-## Should you upgrade the firmware?
-
-**Yes — but by reflashing, not by upgrading in place.**
-
-**Why not in-place:** it would need Debian 9→10→11→12 *and* OMV 4→5→6→7, three
-to four hops each, on an image that is already heavily customized (ayufan
-kernel, OMV, plus the Entware overlay with its own nginx/PHP/MySQL). OMV's own
-guidance for a major-version jump is a clean install, and the community writeups
-of just 4→5 describe it as painful. Worse, the ayufan kernel repo is gone, so
-even a successful userland upgrade leaves you on the 2019 kernel — a modern
-Debian on a 5.3 kernel is the worst of both.
-
-**What a reflash buys:** current RK3328 Armbian-derived builds (ophub /
-community RK3318-RK3328 CSC images, kernel 6.12–6.18 as of 2026) give you a
-maintained kernel, a Debian 12/13 base, **Docker** (so a current Jellyfin in a
-container instead of the dead `:8096`), and it drops the whole unaudited
-Entware bundle and its default credentials. There's no SPI flash, so the
-reflash risk is contained to eMMC/SD — the box is recoverable.
-
-**Before you do it:**
-- Back up the **1.1 TB on `sdb1`** first. An ext4 data disk normally survives a
-  reflash untouched, but "normally" is not a backup.
-- Export OMV's config and note the share/user definitions — they won't migrate.
-- Confirm the specific image boots from SD first, and only then write eMMC.
-
-**The honest caveat:** 1 GB RAM and RK3328 mean this will never be a good
-Jellyfin host — no usable hardware transcoding, so every client must direct-play.
-A reflash makes it a *maintained* NAS + download + DLNA box. It does not make it
-a media server.
-
-**If you'd rather not:** the low-effort path is to accept it as an EOL appliance
-— fix the three issues above, put it on an isolated VLAN, disable the services
-you don't use (pick one torrent client; drop FTP, AFP, NFS, SNMP, Seafile), and
-plan a hardware replacement rather than a software upgrade.
-
-## What it's good for
-
-- **Bulk storage** — 2.3 TB across two healthy spinning disks over gigabit, via
-  SMB. Solid backup target / shared library.
-- **Download box** — **Transmission** is now the single client (qBittorrent
-  removed 2026-08-22). aria2 and Xunlei are still installed; retiring them too
-  would cut more surface, but check first whether either holds active
-  downloads, the way qBittorrent turned out to be empty.
-- **DLNA** (`:8200`) for older smart TVs, where direct-play is the only mode
-  anyway.
-- **AdGuard Home** is already running and is arguably the best thing on the box.
-- **Nextcloud / FileBrowser** — personal file sync, once creds are fixed.
-
-### Fit with existing setup (picoclaw + OrangePi)
-- Wire into the **picoclaw Slack bot**: report download queue / free disk, or
-  notify on download completion (Transmission and aria2 both expose RPC).
-  Mirrors the OrangePi news-bot pattern.
-- Use as **always-on storage backend** for other demos (dataset caches for
-  stt-bench, model files) over SMB.
-
----
-*Verification method: root SSH (key auth), `ss`/`ps`/`dpkg`/`smartctl`/`opkg`
-on-host, plus `curl`/`nc`/`dig` probes from `192.168.2.x`.*
-
-Sources for the upgrade assessment:
-[CSC Armbian for RK3318/RK3328 TV box boards](https://forum.armbian.com/topic/26978-csc-armbian-for-rk3318rk3328-tv-box-boards/) ·
-[ophub/amlogic-s9xxx-armbian](https://github.com/ophub/amlogic-s9xxx-armbian) ·
-[ophub/fnnas issue #560 — Chainedbox L1 Pro (RK3328)](https://github.com/ophub/fnnas/issues/560) ·
-[Upgrade OMV 4 to 5: A Painful Path](https://blog.sakuragawa.moe/upgrade-omv-4-to-5-a-painful-path/) ·
-[Steps to Upgrade OMV 4.x to 5.x](https://jc-lan.org/2021/01/02/upgrade-omv-4-x-to-5-x/) ·
-[OMV8 released with Debian 13 base](https://alternativeto.net/news/2025/12/omv8-released-with-debian-13-base-amd64-and-arm64-support-only)
+- 2019: reflashed with ayufan's Rock64 Debian + OMV 4 + the wdmomo Entware
+  bundle.
+- 2026-08-22: removed `ttyd` (an unauthenticated web terminal) and qBittorrent
+  (default `admin` password, ran as root).
+- 2026-10-10/11: upgraded in place, Debian 9→12 and OMV 4→7, one release at a
+  time. A failed first attempt was rolled back by restoring the eMMC from the
+  stick. The Entware services (except Transmission), netatalk/AFP, MySQL, aria2
+  and FileBrowser were disabled or removed. The NIC became `end0` and moved to
+  DHCP. A reflash to a modern Armbian was considered and rejected: no SD slot,
+  and the `data` disk is inside the case.
