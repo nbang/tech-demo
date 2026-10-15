@@ -1,5 +1,0 @@
-name: camera-snapshots
-version: "1.0"
-description: camera_snapshots — grab a burst of JPEG frames from a Yi camera's RTSP stream and post them to the chat (owner's DM only)
-provides_tools:
-  - camera_snapshots

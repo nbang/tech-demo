@@ -1,3 +1,0 @@
-name: dm-only-tools
-version: "1.0"
-description: Blocks selected MCP tools (Transmission) everywhere except the owner's Slack DM

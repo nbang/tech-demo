@@ -27,8 +27,8 @@ project folder at a time.**
 | `turboquant-guide/` | llama.cpp TurboQuant notes + benchmark | Python script, C++ (vendored) | `benchmark.py` |
 | `ecc-demo/` | With/without ECC plugin case study | mixed | `TASK.md` |
 | `*-guide/`, `ai-methodology/`, `pi-herdr-orchestrator/` | Written guides and configs | Markdown, shell | — |
-| `home-network/` | Runbooks for real LAN devices | Markdown, shell, Python | see its README |
 | `.claude/skills/srt-translate-vi/` | Skill: translate .srt → Vietnamese | Python | `SKILL.md` |
+| `zz-archive/` | Finished/abandoned demos, read-only | mixed | its README |
 
 `gemma-agentic/` is an empty placeholder. Ask before putting anything in it.
 
@@ -41,6 +41,9 @@ project folder at a time.**
   workspace files, pre-commit, CI) unless asked.
 - `text2sparql-v1` and `-v2` are deliberate snapshots of the same package.
   Change only the version the task names. Don't sync the two.
+- `zz-archive/` holds finished or abandoned demos. Don't edit, update, or
+  run them unless asked. Archiving is `git mv <project> zz-archive/` plus a
+  row in `zz-archive/README.md`.
 - Don't edit vendored or third-party trees: `turboquant-guide/llama-cpp-turboquant/`,
   `node_modules/`, `target/`, `*.egg-info/`, `.venv/`.
 
@@ -80,14 +83,13 @@ project folder at a time.**
 - Benchmark results under `results/` are generated. Don't hand-edit them;
   re-run the benchmark instead.
 
-### `home-network/` is real hardware
-- These READMEs describe live devices on `192.168.2.0/24`: IPs, SSH users, and
-  services. **Don't SSH into a box, run scripts against it, or change its
-  config unless the user explicitly asks in the current task.** Editing the
-  docs is fine.
-- Each device's README is the source of truth for that box. The inventory
-  table lives in `home-network/README.md`; keep it in sync when a device doc
-  changes.
+### Home-LAN device runbooks live elsewhere
+- `home-network/` moved out of this repo to its own project at
+  `~/work/home-network/` (device runbooks, IPs, inventory). Don't recreate it
+  here; edit device docs in that project.
+- The `purifier-dashboard/` poller talks to a real device on the LAN. Don't run
+  it against the purifier or touch the deployed Worker unless the user asks in
+  the current task.
 
 ## Multi-agent coordination
 
@@ -121,8 +123,8 @@ These are only suggestions; the user decides.
 - **Cheap/fast models** (DeepSeek, free OpenRouter models via Hermes/OpenCode):
   doc updates, Vietnamese translations of guides, `.env.example`/README sync,
   running benchmarks and summarizing results.
-- **Any task that touches `home-network/` hardware, secrets, or git history**
-  needs a human in the loop.
+- **Any task that touches real LAN hardware, secrets, or git history** needs a
+  human in the loop.
 
 ## New project checklist
 1. A new top-level folder `<name>/` (kebab-case), self-contained.

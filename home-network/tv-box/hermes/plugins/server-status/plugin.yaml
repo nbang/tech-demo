@@ -1,3 +1,0 @@
-name: server-status
-version: "1.0"
-description: /server — read-only health of the TX3 box (uptime, load, temperature, memory, disk, gateway)
